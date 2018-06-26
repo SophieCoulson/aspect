@@ -22,6 +22,7 @@
 #include <aspect/global.h>
 #include <aspect/initial_temperature/ascii_data_vs.h>
 #include <aspect/adiabatic_conditions/interface.h>
+#include <aspect/utilities.h>
 
 namespace aspect
 {
@@ -37,11 +38,14 @@ namespace aspect
     AsciiDataVs<dim>::initialize ()
     {
       Utilities::AsciiDataInitial<dim>::initialize(1);
-
+      if (s40rts.vs_to_density_method == s40rts.file)
+              {
+                s40rts.profile.initialize(this->get_mpi_communicator());
+                s40rts.vs_to_density_index = s40rts.profile.get_column_index_from_name("vs_to_density");
+              }
     }
 
-//Read in and return vs perturbation from ascii grid
-
+    //Read in and return vs perturbation from ascii grid
     template <int dim>
     double
     AsciiDataVs<dim>::
@@ -52,38 +56,55 @@ namespace aspect
     }
 
 
-//Read in background temperature and calculate temperatures from Vs
+    //Read in ascii grid vs data above 700 km and S40RTS vs data below 700 km
     template <int dim>
     double
     AsciiDataVs<dim>::
     initial_temperature (const Point<dim> &position) const
     {
-      double vs;
+      double vs_perturbation;
       if (this->get_geometry_model().depth(position) < 700000)
         {
-          vs = ascii_grid_vs(position);
+          vs_perturbation = ascii_grid_vs(position);
         }
       else
         {
-          vs = s40rts.get_Vs(position);
+          vs_perturbation = s40rts.get_Vs(position);
         }
-//...convert vs into temperature, return that...
 
-// use either the user-input reference temperature as background temperature
+      // use either the user-input reference temperature as background temperature
       // (incompressible model) or the adiabatic temperature profile (compressible model)
-      // const double background_temperature = this->get_material_model().is_compressible() ?                                                        this->get_adiabatic_conditions().temperature(position) :
-      // reference_temperature;
-      const double background_temperature=1000;
-      const double density_scaling=1;
+      const double background_temperature = this->get_material_model().is_compressible() ?
+    		  this->get_adiabatic_conditions().temperature(position) :
+              s40rts.reference_temperature;
 
-      //const double ascii_grid_vs_perturbation=ascii_grid_vs (position);
-      //const double S40RTS_vs_perturbation = s40rts.get_Vs (position);
-      const double vs_perturbation = vs+1;
-      //std::cout << vs_perturbation << std::endl;
-      const double density_perturbation = vs_perturbation*density_scaling;
-      const double temperature_scaling = 1;
-      const double temperature_perturbation = density_perturbation*temperature_scaling*10;
-      return background_temperature + temperature_perturbation;
+      // Get the vs to density conversion
+      const double depth = this->get_geometry_model().depth(position);
+
+            double vs_to_density = 0.0;
+            if (s40rts.vs_to_density_method == s40rts.file)
+              vs_to_density = s40rts.profile.get_data_component(Point<1>(depth), s40rts.vs_to_density_index);
+            else if (s40rts.vs_to_density_method == s40rts.constant)
+              vs_to_density = s40rts.vs_to_density_constant;
+            else
+              // we shouldn't get here but instead should already have been
+              // kicked out by the assertion in the parse_parameters()
+              // function
+              Assert (false, ExcNotImplemented());
+
+            // scale the perturbation in seismic velocity into a density perturbation
+            // vs_to_density is an input parameter
+            const double density_perturbation = vs_to_density * vs_perturbation;
+
+            double temperature_perturbation;
+            if (depth > s40rts.no_perturbation_depth)
+              // scale the density perturbation into a temperature perturbation
+              temperature_perturbation =  -1./s40rts.thermal_alpha * density_perturbation;
+            else
+              // set heterogeneity to zero down to a specified depth
+              temperature_perturbation = 0.0;
+
+            return background_temperature + temperature_perturbation;
     }
 
 
@@ -103,6 +124,12 @@ namespace aspect
                            Patterns::Double (0),
                            "The reference temperature that is perturbed by the spherical "
                            "harmonic functions. Only used in incompressible models.");
+
+// No longer need these as everything is called from S40RTS_perturbation
+//        aspect::Utilities::AsciiDataProfile<dim>::declare_parameters(prm,
+//                                                                     "$ASPECT_SOURCE_DIR/data/initial-temperature/S40RTS/",
+//                                                                     "vs_to_density_Steinberger.txt",
+//                                                                     "Ascii data vs to density model");
       }
       prm.leave_subsection();
     }
@@ -116,13 +143,17 @@ namespace aspect
       prm.enter_subsection("Initial temperature model");
       {
         Utilities::AsciiDataBase<dim>::parse_parameters(prm);
-        reference_temperature   = prm.get_double ("Reference temperature");
+        s40rts.reference_temperature   = prm.get_double ("Reference temperature");
+
+        //Parameters from AsciiDataProfile
+        //profile.parse_parameters(prm,"Ascii data vs to density model");
       }
       prm.leave_subsection ();
       s40rts.initialize_simulator (this->get_simulator());
 
       // note: parse_parameters will call initialize for us
       s40rts.parse_parameters(prm);
+
     }
   }
 }

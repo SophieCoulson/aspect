@@ -40,6 +40,10 @@ namespace aspect
       }
     }
 
+    template <int dim>
+    class AsciiDataVs;
+
+
     /**
      * A class that describes a perturbed initial temperature field for a
      * spherical shell geometry model. The perturbation is based on the S20RTS
@@ -90,7 +94,6 @@ namespace aspect
         virtual
         void
         parse_parameters (ParameterHandler &prm);
-
 
       private:
 
@@ -186,6 +189,7 @@ namespace aspect
          */
         unsigned int vs_to_density_index;
 
+        template <int dim2> friend class AsciiDataVs;
     };
 
   }
