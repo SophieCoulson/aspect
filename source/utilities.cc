@@ -1519,6 +1519,10 @@ namespace aspect
     AsciiDataLookup<dim>::load_file(const std::string &filename,
                                     const MPI_Comm &comm)
     {
+        
+      this->get_pcout() << std::endl << "   Loading Ascii data lookup file "
+      << filename << "." << std::endl << std::endl;
+        
       // Read data from disk and distribute among processes
       std::stringstream in(read_and_distribute_file_content(filename, comm));
 
