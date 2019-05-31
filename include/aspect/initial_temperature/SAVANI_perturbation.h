@@ -35,10 +35,45 @@ namespace aspect
     {
       namespace SAVANI
       {
-        class SphericalHarmonicsLookup;
-        class SplineDepthsLookup;
+        class SphericalHarmonicsLookup
+        {
+          public:
+            SphericalHarmonicsLookup(const std::string &filename,
+                                     const MPI_Comm &comm);
+
+            /// Declare a function that returns the cosine coefficients
+            const std::vector<double> &
+            cos_coeffs() const;
+
+            /// Declare a function that returns the sine coefficients
+            const std::vector<double> &
+            sin_coeffs() const;
+
+            unsigned int maxdegree() const;
+
+          private:
+            unsigned int order;
+            std::vector<double> a_lm;
+            std::vector<double> b_lm;
+        };
+
+        class SplineDepthsLookup
+        {
+          public:
+            SplineDepthsLookup(const std::string &filename,
+                               const MPI_Comm &comm);
+
+            const std::vector<double> &
+            spline_depths() const;
+
+          private:
+            std::vector<double> depths;
+        };
       }
     }
+
+    template <int dim>
+    class PatchOnSAVANI;
 
     /**
      * A class that describes a perturbed initial temperature field for a
@@ -188,6 +223,8 @@ namespace aspect
          * Whether to use the thermal expansion coefficient from the material model
          */
         bool use_material_model_thermal_alpha;
+
+        template <int dim2> friend class PatchOnSAVANI;
 
     };
 

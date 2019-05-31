@@ -44,12 +44,10 @@ namespace aspect
         // choose real sine and cosine coefficients that follow the normalization
         // by Dahlen & Tromp, Theoretical Global Seismology (equations B.58 and B.99).
 
-        class SphericalHarmonicsLookup
-        {
-          public:
-            SphericalHarmonicsLookup(const std::string &filename,
-                                     const MPI_Comm &comm)
-            {
+      SphericalHarmonicsLookup::
+      SphericalHarmonicsLookup(const std::string &filename,
+                               const MPI_Comm &comm)
+      {
               std::string temp;
               // Read data from disk and distribute among processes
               std::istringstream in(Utilities::read_and_distribute_file_content(filename, comm));
@@ -92,36 +90,30 @@ namespace aspect
             }
 
             // Declare a function that returns the cosine coefficients
-            const std::vector<double> &cos_coeffs() const
+            const std::vector<double> &
+			SphericalHarmonicsLookup::cos_coeffs() const
             {
               return a_lm;
             }
 
             // Declare a function that returns the sine coefficients
-            const std::vector<double> &sin_coeffs() const
+            const std::vector<double> &
+			SphericalHarmonicsLookup::sin_coeffs() const
             {
               return b_lm;
             }
 
-            unsigned int maxdegree()
+            unsigned int
+			SphericalHarmonicsLookup::maxdegree() const
             {
               return order;
             }
 
-          private:
-            unsigned int order;
-            std::vector<double> a_lm;
-            std::vector<double> b_lm;
-
-        };
 
         // Read in the knot points for the spline interpolation. They are located in data/
         // initial-temperature/SAVANI and were taken from the 28 spherical layers of SAVANI
         // tomography model by a matlab script convert_to_knots.m located in the same directory.
-        class SplineDepthsLookup
-        {
-          public:
-            SplineDepthsLookup(const std::string &filename,
+        	SplineDepthsLookup::SplineDepthsLookup(const std::string &filename,
                                const MPI_Comm &comm)
             {
               std::string temp;
@@ -139,14 +131,11 @@ namespace aspect
                 }
             }
 
-            const std::vector<double> &spline_depths() const
+            const std::vector<double> &
+			SplineDepthsLookup::spline_depths() const
             {
               return depths;
             }
-
-          private:
-            std::vector<double> depths;
-        };
       }
     }
 
