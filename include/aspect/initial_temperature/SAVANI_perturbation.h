@@ -72,9 +72,6 @@ namespace aspect
       }
     }
 
-    template <int dim>
-    class PatchOnSAVANI;
-
     /**
      * A class that describes a perturbed initial temperature field for a
      * spherical shell geometry model. The perturbation is based on the SAVANI
@@ -223,8 +220,6 @@ namespace aspect
          * Whether to use the thermal expansion coefficient from the material model
          */
         bool use_material_model_thermal_alpha;
-
-        template <int dim2> friend class PatchOnSAVANI;
 
     };
 
